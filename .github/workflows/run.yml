@@ -2,14 +2,14 @@ name: YouTube to Teams Bot
 
 on:
   schedule:
-    - cron: '*/10 * * * *'  # 10분마다 실행
-  workflow_dispatch:      # 수동 실행 버튼 활성화
+    - cron: '*/10 * * * *'  # 10분마다 자동 실행
+  workflow_dispatch:      # 이 옵션이 있어야 Actions 탭에 [Run workflow] 버튼이 생성됩니다.
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
     
-    # 깃허브 저장소에 seen_videos.json 변경 내역을 커밋/푸시하기 위한 필수 권한
+    # 깃허브 저장소에 seen_videos.json 변경 내역을 커밋/푸시하기 위한 권한 부여
     permissions:
       contents: write
 
@@ -17,7 +17,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          ref: main
           fetch-depth: 0
           clean: true
 
