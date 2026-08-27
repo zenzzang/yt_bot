@@ -2,14 +2,13 @@ name: YouTube to Teams Bot
 
 on:
   schedule:
-    - cron: '*/10 * * * *'  # 10분마다 자동 실행
-  workflow_dispatch:      # 이 옵션이 있어야 Actions 탭에 [Run workflow] 버튼이 생성됩니다.
+    - cron: '1,11,21,31,41,51 * * * *'  # 1분, 11분, 21분, 31분, 41분, 51분마다 실행
+  workflow_dispatch:      # 수동 실행 버튼 활성화
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
     
-    # 깃허브 저장소에 seen_videos.json 변경 내역을 커밋/푸시하기 위한 권한 부여
     permissions:
       contents: write
 
@@ -29,9 +28,6 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install feedparser requests
-
-      - name: Wait for exact timing (30 seconds offset)
-        run: sleep 30
 
       - name: Run script
         run: |
