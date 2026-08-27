@@ -6,6 +6,7 @@ import csv
 import io
 
 SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1jaIGjoWuAASDof1FUpE7kYK1Jl4Dmg2u8lfFV65bozs/export?format=csv"
+# 변경된 Power Automate HTTP 트리거 URL 적용
 POWER_URL = "https://default91856527a4464990b48e37ca10f2ee.8d.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/02/workflows/1f012f272d9041b3ab0c4a7031ffab2e/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=wFnhf1VLP2r9WLu7nTHZKFHhvPRARZIQ_PD9AB3Uqy8"
 SEEN_FILE = "seen_videos.json"
 
@@ -34,7 +35,6 @@ def get_active_channels_from_sheet():
             print("구글 시트가 비어있습니다.")
             return channels
             
-        # 헤더 이름에서 키워드('채널 ID', '활성 여부')가 포함된 컬럼 인덱스를 유연하게 탐색
         id_idx = -1
         active_idx = -1
         name_idx = -1
@@ -48,10 +48,8 @@ def get_active_channels_from_sheet():
             elif "채널 이름" in h_clean or "쇼트네임" in h_clean:
                 name_idx = idx
                 
-        print(f"매핑된 컬럼 인덱스 -> 채널ID열: {id_idx}, 활성여부열: {active_idx}, 이름열: {name_idx}")
-        
         if id_idx == -1 or active_idx == -1:
-            print("❌ 에러: 시트에서 '채널 ID' 또는 '활성 여부' 컬럼을 찾지 못했습니다. 헤더 이름을 확인해주세요.")
+            print("❌ 에러: 시트에서 '채널 ID' 또는 '활성 여부' 컬럼을 찾지 못했습니다.")
             return channels
 
         row_count = 0
@@ -63,8 +61,6 @@ def get_active_channels_from_sheet():
             channel_id = row[id_idx].strip()
             active = row[active_idx].strip().upper()
             channel_name = row[name_idx].strip() if name_idx != -1 and len(row) > name_idx else "이름없음"
-            
-            print(f"행[{row_count}] 채널: {channel_name} | ID: {channel_id} | 활성여부: [{active}]")
             
             if active == "TRUE" and channel_id:
                 channels.append(f"https://www.youtube.com/feeds/videos.xml?channel_id={channel_id}")
