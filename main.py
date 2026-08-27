@@ -41,7 +41,7 @@ CHANNEL_URLS = [
     "https://www.youtube.com/feeds/videos.xml?channel_id=UCo-9ovAJ6Ffo2mEI85nw6jg"
 ]
 
-# 새로 변경된 파워 아우토메이트 HTTP URL 적용
+# 최신 파워 아우토메이트 HTTP URL 반영
 POWER_URL = "https://default91856527a4464990b48e37ca10f2ee.8d.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/09/workflows/b99e85923f3b421cbcf71e6a38cfc5bd/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=-mprHiKkXGUwdrOyclY8EzsxwQk0PDWalHoSu7UUOgA"
 SEEN_FILE = "seen_videos.json"
 
@@ -60,58 +60,13 @@ def send_signal(title, link, thumb, channel, published):
     clean_title = title.replace('"', "'").replace("\n", " ")
     clean_channel = channel.replace('"', "'").replace("\n", " ")
     
-    # 팀즈 적응형 카드(Adaptive Card) 포맷을 파이썬 내에서 완성도 높게 구성합니다.
-    card_payload = {
-        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
-        "type": "AdaptiveCard",
-        "version": "1.2",
-        "body": [
-            {
-                "type": "TextBlock",
-                "text": f"🎬 신규 콘텐츠 알림 [{clean_channel}]",
-                "weight": "Bolder",
-                "size": "Medium",
-                "color": "Accent"
-            },
-            {
-                "type": "TextBlock",
-                "text": clean_title,
-                "weight": "Bolder",
-                "size": "Large",
-                "wrap": True
-            },
-            {
-                "type": "Image",
-                "url": thumb,
-                "size": "Stretch",
-                "altText": "유튜브 썸네일"
-            },
-            {
-                "type": "FactSet",
-                "facts": [
-                    {
-                        "title": "채널",
-                        "value": clean_channel
-                    },
-                    {
-                        "title": "게시일시",
-                        "value": published
-                    }
-                ]
-            }
-        ],
-        "actions": [
-            {
-                "type": "Action.OpenUrl",
-                "title": "▶️ YouTube에서 영상 바로 재생하기",
-                "url": link
-            }
-        ]
-    }
-
-    # 파워 아우토메이트가 트리거로 받을 수 있도록 adaptiveCard 키로 감쌉니다.
+    # 파워 아우토메이트가 다루기 쉬운 기본 키-값 형태로 쏩니다.
     payload = {
-        "adaptiveCard": card_payload
+        "title": clean_title,
+        "link": link,
+        "thumbnail_url": thumb,
+        "channel_name": clean_channel,
+        "published": published
     }
 
     try:
