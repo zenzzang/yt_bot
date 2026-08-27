@@ -83,7 +83,7 @@ def send_signal(title, link, thumb, channel, published):
     # 게시일시를 YYYY.MM.DD HH:MM:SS 형태로 변환
     formatted_date = format_published_date(published)
 
-    # 텍스트 복사가 가능하도록 FactSet 형태로 '링크', '채널', '게시일시' 구성
+    # 요청하신 문구와 텍스트 링크, FactSet 정렬 구조 반영
     adaptive_card = {
         "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
         "type": "AdaptiveCard",
@@ -112,6 +112,12 @@ def send_signal(title, link, thumb, channel, published):
                     "type": "Action.OpenUrl",
                     "url": clean_link
                 }
+            },
+            {
+                "type": "TextBlock",
+                "text": f"'{clean_title}' 영상이 새로 업로드되었습니다.",
+                "wrap": True,
+                "size": "Default"
             },
             {
                 "type": "FactSet",
