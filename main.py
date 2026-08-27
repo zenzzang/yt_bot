@@ -5,7 +5,6 @@ import os
 import csv
 import io
 
-raise Exception("이 메시지가 뜨면 무조건 최신 코드가 돌고 있는 것입니다!")
 # 구글 스프레드시트 CSV 내보내기 링크
 SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1jaIGjoWuAASDof1FUpE7kYK1Jl4Dmg2u8lfFV65bozs/export?format=csv"
 
