@@ -4,6 +4,7 @@ import json
 import os
 import csv
 import io
+from datetime import datetime
 
 SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1jaIGjoWuAASDof1FUpE7kYK1Jl4Dmg2u8lfFV65bozs/export?format=csv"
 POWER_URL = "https://default91856527a4464990b48e37ca10f2ee.8d.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/09/workflows/b99e85923f3b421cbcf71e6a38cfc5bd/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=-mprHiKkXGUwdrOyclY8EzsxwQk0PDWalHoSu7UUOgA"
@@ -35,7 +36,6 @@ def get_active_channels_from_sheet():
             
         id_idx = -1
         active_idx = -1
-        name_idx = -1
         
         for idx, h in enumerate(headers):
             h_clean = h.strip()
@@ -43,8 +43,6 @@ def get_active_channels_from_sheet():
                 id_idx = idx
             elif "활성 여부" in h_clean:
                 active_idx = idx
-            elif "채널 이름" in h_clean or "쇼트네임" in h_clean:
-                name_idx = idx
                 
         if id_idx == -1 or active_idx == -1:
             return channels
@@ -62,14 +60,35 @@ def get_active_channels_from_sheet():
     
     return channels
 
+def format_published_date(published_str):
+    """유튜브 RSS 날짜 형식(예: 2026-08-26T04:48:00+00:00)을 YYYY.MM.DD로 변환"""
+    try:
+        # ISO 형식 파싱 시도
+        dt = datetime.fromisoformat(published_str.replace("Z", "+00:00"))
+        return dt.strftime("%Y.%m.%d")
+    except Exception:
+        try:
+            # feedparser가 파싱한 구조화된 시간(published_parsed)이 넘어올 경우 대비
+            if hasattr(published_str, "__getitem__") and len(published_str) >= 3:
+                return f"{published_str[0]:04d}.{published_str[1]:02d}.{published_str[2]:02d}"
+        except:
+            pass
+    # 변환 실패 시 원본 문자열 반환 혹은 앞부분 10자리(YYYY-MM-DD) 추출 후 치환
+    clean_str = str(published_str).strip()
+    if len(clean_str) >= 10 and clean_str[4] == '-' and clean_str[7] == '-':
+        return clean_str[:10].replace('-', '.')
+    return clean_str
+
 def send_signal(title, link, thumb, channel, published):
     clean_title = str(title).strip().replace('"', "'")
     clean_channel = str(channel).strip().replace('"', "'")
     clean_link = str(link).strip()
     clean_thumb = str(thumb).strip()
-    clean_published = str(published).strip()
+    
+    # 게시일시를 YYYY.MM.DD 형태로 변환
+    formatted_date = format_published_date(published)
 
-    # 요청하신 적응형 카드 양식을 파이썬 딕셔너리로 통째로 조립
+    # 썸네일 바로 밑에 링크 TextBlock을 추가한 적응형 카드 구조
     adaptive_card = {
         "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
         "type": "AdaptiveCard",
@@ -100,6 +119,13 @@ def send_signal(title, link, thumb, channel, published):
                 }
             },
             {
+                "type": "TextBlock",
+                "text": f"▶️ [영상 바로보기 링크]({clean_link})",
+                "wrap": True,
+                "size": "Default",
+                "isSubtle": True
+            },
+            {
                 "type": "FactSet",
                 "facts": [
                     {
@@ -108,7 +134,7 @@ def send_signal(title, link, thumb, channel, published):
                     },
                     {
                         "title": "게시일시",
-                        "value": clean_published
+                        "value": formatted_date
                     }
                 ]
             }
@@ -127,7 +153,6 @@ def send_signal(title, link, thumb, channel, published):
         ]
     }
 
-    # 파워 아우토메이트가 'adaptiveCard' 키값으로 카드를 통째로 받을 수 있게 포장
     payload = {
         "adaptiveCard": adaptive_card
     }
