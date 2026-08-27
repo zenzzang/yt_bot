@@ -74,16 +74,19 @@ def format_published_date(published_str):
     clean_str = str(published_str).strip()
     return clean_str
 
-def send_signal(title, link, thumb, channel, published):
+def send_signal(title, link, thumb, channel, published, vid):
     clean_title = str(title).strip().replace('"', "'")
     clean_channel = str(channel).strip().replace('"', "'")
     clean_link = str(link).strip()
     clean_thumb = str(thumb).strip()
     
-    # 게시일시를 YYYY.MM.DD HH:MM:SS 형태로 변환
+    # 게시일시 포맷팅
     formatted_date = format_published_date(published)
+    
+    # 대시보드 URL에 ?video=비디오ID 파라미터 조합
+    dashboard_url = f"https://nc-nbs.ai.studio/?video={vid}" if vid else "https://nc-nbs.ai.studio/"
 
-    # 요청하신 문구와 텍스트 링크, FactSet 정렬 구조 반영
+    # 적응형 카드 구성
     adaptive_card = {
         "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
         "type": "AdaptiveCard",
@@ -145,8 +148,8 @@ def send_signal(title, link, thumb, channel, published):
             },
             {
                 "type": "Action.OpenUrl",
-                "title": "📊 NC YouTube DashBoard에서 열기",
-                "url": "https://nc-nbs.ai.studio/"
+                "title": "📊 NC Youtube DashBoard에서 열기",
+                "url": dashboard_url
             }
         ]
     }
@@ -197,7 +200,7 @@ def run():
                 
                 if vid and vid not in seen:
                     print(f"[신규 전송] {channel} - {title}")
-                    send_signal(title, link, thumb, channel, published)
+                    send_signal(title, link, thumb, channel, published, vid)
                     new_seen.append(vid)
                 else:
                     print(f"[스킵] {channel} - {title}")
