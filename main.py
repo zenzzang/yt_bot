@@ -61,22 +61,17 @@ def get_active_channels_from_sheet():
     return channels
 
 def format_published_date(published_str):
-    """유튜브 RSS 날짜 형식(예: 2026-08-26T04:48:00+00:00)을 YYYY.MM.DD로 변환"""
+    """유튜브 RSS 날짜 형식을 YYYY.MM.DD HH:MM:SS 형식으로 변환"""
     try:
-        # ISO 형식 파싱 시도
         dt = datetime.fromisoformat(published_str.replace("Z", "+00:00"))
-        return dt.strftime("%Y.%m.%d")
+        return dt.strftime("%Y.%m.%d %H:%M:%S")
     except Exception:
         try:
-            # feedparser가 파싱한 구조화된 시간(published_parsed)이 넘어올 경우 대비
-            if hasattr(published_str, "__getitem__") and len(published_str) >= 3:
-                return f"{published_str[0]:04d}.{published_str[1]:02d}.{published_str[2]:02d}"
+            if hasattr(published_str, "__getitem__") and len(published_str) >= 6:
+                return f"{published_str[0]:04d}.{published_str[1]:02d}.{published_str[2]:02d} {published_str[3]:02d}:{published_str[4]:02d}:{published_str[5]:02d}"
         except:
             pass
-    # 변환 실패 시 원본 문자열 반환 혹은 앞부분 10자리(YYYY-MM-DD) 추출 후 치환
     clean_str = str(published_str).strip()
-    if len(clean_str) >= 10 and clean_str[4] == '-' and clean_str[7] == '-':
-        return clean_str[:10].replace('-', '.')
     return clean_str
 
 def send_signal(title, link, thumb, channel, published):
@@ -85,10 +80,10 @@ def send_signal(title, link, thumb, channel, published):
     clean_link = str(link).strip()
     clean_thumb = str(thumb).strip()
     
-    # 게시일시를 YYYY.MM.DD 형태로 변환
+    # 게시일시를 YYYY.MM.DD HH:MM:SS 형태로 변환
     formatted_date = format_published_date(published)
 
-    # 썸네일 바로 밑에 링크 TextBlock을 추가한 적응형 카드 구조
+    # 텍스트 복사가 가능하도록 FactSet 형태로 '링크', '채널', '게시일시' 구성
     adaptive_card = {
         "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
         "type": "AdaptiveCard",
@@ -119,15 +114,12 @@ def send_signal(title, link, thumb, channel, published):
                 }
             },
             {
-                "type": "TextBlock",
-                "text": f"▶️ [영상 바로보기 링크]({clean_link})",
-                "wrap": True,
-                "size": "Default",
-                "isSubtle": True
-            },
-            {
                 "type": "FactSet",
                 "facts": [
+                    {
+                        "title": "링크",
+                        "value": clean_link
+                    },
                     {
                         "title": "채널",
                         "value": clean_channel
