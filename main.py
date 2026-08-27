@@ -145,7 +145,7 @@ def send_signal(title, link, thumb, channel, published):
             },
             {
                 "type": "Action.OpenUrl",
-                "title": "📊 NC Youtube DashBoard에서 열기",
+                "title": "📊 NC YouTube DashBoard에서 열기",
                 "url": "https://nc-nbs.ai.studio/"
             }
         ]
