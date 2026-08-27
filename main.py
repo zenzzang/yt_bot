@@ -59,13 +59,58 @@ def send_signal(title, link, thumb, channel, published):
     clean_title = title.replace('"', "'").replace("\n", " ")
     clean_channel = channel.replace('"', "'").replace("\n", " ")
     
-    # 파워 아우토메이트가 다루기 가장 쉬운 기본 데이터 구조로 전송합니다.
+    # 썸네일과 형식을 갖춘 적응형 카드(Adaptive Card) 구조를 코드 내에서 완전히 조립합니다.
+    card_payload = {
+        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+        "type": "AdaptiveCard",
+        "version": "1.2",
+        "body": [
+            {
+                "type": "TextBlock",
+                "text": f"🎬 신규 콘텐츠 알림 [{clean_channel}]",
+                "weight": "Bolder",
+                "size": "Medium",
+                "color": "Accent"
+            },
+            {
+                "type": "TextBlock",
+                "text": clean_title,
+                "weight": "Bolder",
+                "size": "Large",
+                "wrap": True
+            },
+            {
+                "type": "Image",
+                "url": thumb,
+                "size": "Stretch",
+                "altText": "유튜브 썸네일"
+            },
+            {
+                "type": "FactSet",
+                "facts": [
+                    {
+                        "title": "채널",
+                        "value": clean_channel
+                    },
+                    {
+                        "title": "게시일시",
+                        "value": published
+                    }
+                ]
+            }
+        ],
+        "actions": [
+            {
+                "type": "Action.OpenUrl",
+                "title": "▶️ YouTube에서 영상 바로 재생하기",
+                "url": link
+            }
+        ]
+    }
+
+    # 파워 아우토메이트가 기대하는 'adaptiveCard' 키 형태로 감싸서 전송합니다.
     payload = {
-        "title": clean_title,
-        "link": link,
-        "thumbnail_url": thumb,
-        "channel_name": clean_channel,
-        "published": published
+        "adaptiveCard": card_payload
     }
 
     try:
