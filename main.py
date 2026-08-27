@@ -1,5 +1,5 @@
 def get_active_channels_from_sheet():
-    """구글 시트에서 활성 여부가 정확히 TRUE인 채널 RSS URL 목록만 동적으로 가져옵니다."""
+    """구글 시트의 컬럼 구조((H)활성 여부, (D)채널 ID)에 맞춰 활성(TRUE) 채널만 가져옵니다."""
     channels = []
     try:
         response = requests.get(SHEET_CSV_URL)
@@ -10,16 +10,16 @@ def get_active_channels_from_sheet():
         reader = csv.DictReader(f)
         
         for row in reader:
-            # 공백을 제거하고 대문자로 변환하여 비교 ("TRUE" 또는 "true" 대응)
-            active = str(row.get("활성여부", "")).strip().upper()
-            channel_id = str(row.get("채널ID", "")).strip()
-            channel_url = str(row.get("채널URL", "")).strip()
+            # 띄어쓰기가 포함된 실제 시트 헤더 이름 ('활성 여부', '채널 ID') 사용
+            active = str(row.get("활성 여부", "")).strip().upper()
+            channel_id = str(row.get("채널 ID", "")).strip()
+            channel_url = str(row.get("채널 URL", "")).strip()
             
-            # 정확히 TRUE일 때만 추가
+            # 활성 여부가 TRUE이고 채널 ID가 존재할 경우 RSS URL 생성
             if active == "TRUE":
                 if channel_id:
                     channels.append(f"https://www.youtube.com/feeds/videos.xml?channel_id={channel_id}")
-                elif channel_url:
+                elif channel_url and "channel_id=" in channel_url:
                     channels.append(channel_url)
         
         print(f"[{len(channels)}개] 활성(TRUE) 채널 로드 완료")
