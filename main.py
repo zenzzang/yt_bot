@@ -56,17 +56,50 @@ def save_seen(lst):
         json.dump(lst[-200:], f)
 
 def send_signal(title, link, thumb, channel, published):
-    # 특수문자나 따옴표로 인한 JSON 깨짐 방지를 위해 깔끔하게 정제
     clean_title = title.replace('"', "'").replace("\n", " ")
     clean_channel = channel.replace('"', "'").replace("\n", " ")
     
-    payload = {
-        "title": clean_title,
-        "link": link,
-        "thumbnail_url": thumb,
-        "channel_name": clean_channel,
-        "published": published
+    # 팀즈 적응형 카드(Adaptive Card) 규격에 맞춘 JSON 구조를 파이썬에서 직접 조립합니다.
+    # 추후 형식을 바꾸고 싶다면 아래 텍스트 구성만 수정하면 됩니다!
+    card_payload = {
+        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+        "type": "AdaptiveCard",
+        "version": "1.2",
+        "body": [
+            {
+                "type": "TextBlock",
+                "text": f"📢 [{clean_channel}] 새 영상 업로드",
+                "weight": "Bolder",
+                "size": "Medium",
+                "color": "Accent"
+            },
+            {
+                "type": "TextBlock",
+                "text": clean_title,
+                "wrap": True,
+                "weight": "Bolder"
+            },
+            {
+                "type": "TextBlock",
+                "text": f"게시일: {published}",
+                "size": "Small",
+                "isSubtle": True
+            }
+        ],
+        "actions": [
+            {
+                "type": "Action.OpenUrl",
+                "title": "🎬 영상 보러 가기",
+                "url": link
+            }
+        ]
     }
+
+    # 파워 아우토메이트가 기대하는 'adaptiveCard' 키 이름으로 감싸서 보냅니다.
+    payload = {
+        "adaptiveCard": card_payload
+    }
+
     try:
         res = requests.post(
             POWER_URL, 
