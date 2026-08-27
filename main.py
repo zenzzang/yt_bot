@@ -5,8 +5,12 @@ import os
 import csv
 import io
 
+# 구글 스프레드시트 CSV 내보내기 링크
 SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1jaIGjoWuAASDof1FUpE7kYK1Jl4Dmg2u8lfFV65bozs/export?format=csv"
+
+# 파워 아우토메이트 HTTP 트리거 URL
 POWER_URL = "https://default91856527a4464990b48e37ca10f2ee.8d.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/09/workflows/b99e85923f3b421cbcf71e6a38cfc5bd/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=-mprHiKkXGUwdrOyclY8EzsxwQk0PDWalHoSu7UUOgA"
+
 SEEN_FILE = "seen_videos.json"
 
 def load_seen():
@@ -21,7 +25,7 @@ def save_seen(lst):
         json.dump(lst[-200:], f)
 
 def get_active_channels_from_sheet():
-    """구글 시트에서 '활성 여부'가 TRUE인 채널의 RSS URL 목록만 정확히 가져옵니다."""
+    """오직 구글 시트의 '활성 여부'가 TRUE인 채널 ID만 동적으로 가져옵니다."""
     channels = []
     try:
         response = requests.get(SHEET_CSV_URL)
@@ -31,16 +35,17 @@ def get_active_channels_from_sheet():
         reader = csv.DictReader(f)
         
         for row in reader:
-            # 대소문자 및 공백 무시하고 확인
             active = str(row.get("활성 여부", "")).strip().upper()
             channel_id = str(row.get("채널 ID", "")).strip()
+            channel_name = str(row.get("채널 이름", "")).strip()
             
-            print(f"채널 확인 -> ID: {channel_id}, 활성여부: {active}") # 액션스 로그에서 확인용
+            # 디버깅을 위해 로그 출력
+            print(f"시트 채널 확인 -> 이름: {channel_name}, ID: {channel_id}, 활성여부: {active}")
             
             if active == "TRUE" and channel_id:
                 channels.append(f"https://www.youtube.com/feeds/videos.xml?channel_id={channel_id}")
         
-        print(f"[{len(channels)}개] 활성(TRUE) 채널 로드 성공")
+        print(f"총 {len(channels)}개의 활성(TRUE) 채널 로드 완료")
     except Exception as e:
         print(f"구글 시트 연동 에러 발생: {e}")
     
@@ -75,9 +80,10 @@ def run():
     seen = load_seen()
     new_seen = seen.copy()
     
+    # 하드코딩 리스트 대신 무조건 시트에서 읽어옴
     channel_urls = get_active_channels_from_sheet()
     if not channel_urls:
-        print("⚠️ 가져온 활성 채널이 없습니다. 시트의 컬럼명('활성 여부', '채널 ID')이나 공유 권한을 확인해주세요.")
+        print("⚠️ 활성화된 채널이 없습니다. 구글 시트 권한(링크가 있는 모든 사용자 뷰어)이나 컬럼명을 확인해주세요.")
         return
     
     for url in channel_urls:
