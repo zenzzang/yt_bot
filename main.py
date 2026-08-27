@@ -11,15 +11,27 @@ POWER_URL = "https://default91856527a4464990b48e37ca10f2ee.8d.environment.api.po
 SEEN_FILE = "seen_videos.json"
 
 def load_seen():
+    """seen_videos.json 로드 (기존의 단순 문자열 리스트와 새로운 딕셔너리 형태 모두 호환)"""
     if os.path.exists(SEEN_FILE):
-        with open(SEEN_FILE, "r") as f:
-            try: return json.load(f)
-            except: return []
+        with open(SEEN_FILE, "r", encoding="utf-8") as f:
+            try: 
+                data = json.load(f)
+                # 기존 데이터가 단순 ID 문자열 리스트인 경우를 대비한 예외 처리
+                normalized = []
+                for item in data:
+                    if isinstance(item, str):
+                        normalized.append({"vid": item, "title": "", "channel": "", "link": ""})
+                    elif isinstance(item, dict):
+                        normalized.append(item)
+                return normalized
+            except: 
+                return []
     return []
 
 def save_seen(lst):
-    with open(SEEN_FILE, "w") as f:
-        json.dump(lst[-200:], f)
+    """최신 200개의 기록만 유지하여 저장"""
+    with open(SEEN_FILE, "w", encoding="utf-8") as f:
+        json.dump(lst[-200:], f, ensure_ascii=False, indent=2)
 
 def get_active_channels_from_sheet():
     channels = []
@@ -80,13 +92,9 @@ def send_signal(title, link, thumb, channel, published, vid):
     clean_link = str(link).strip()
     clean_thumb = str(thumb).strip()
     
-    # 게시일시 포맷팅
     formatted_date = format_published_date(published)
-    
-    # 대시보드 URL에 ?video=비디오ID 파라미터 조합
     dashboard_url = f"https://nc-nbs.ai.studio/?video={vid}" if vid else "https://nc-nbs.ai.studio/"
 
-    # 적응형 카드 구성
     adaptive_card = {
         "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
         "type": "AdaptiveCard",
@@ -175,6 +183,9 @@ def run():
     seen = load_seen()
     new_seen = seen.copy()
     
+    # 이미 본 영상들의 비디오 ID 집합(Set) 생성
+    seen_vids = {item["vid"] for item in seen}
+    
     channel_urls = get_active_channels_from_sheet()
     if not channel_urls:
         print("⚠️ 활성화된 채널이 없습니다.")
@@ -198,10 +209,17 @@ def run():
                 
                 thumb = f"https://img.youtube.com/vi/{vid}/hqdefault.jpg" if vid else ""
                 
-                if vid and vid not in seen:
+                if vid and vid not in seen_vids:
                     print(f"[신규 전송] {channel} - {title}")
                     send_signal(title, link, thumb, channel, published, vid)
-                    new_seen.append(vid)
+                    # 비디오 ID뿐만 아니라 채널명, 제목, 링크를 함께 기록
+                    new_seen.append({
+                        "vid": vid,
+                        "title": title,
+                        "channel": channel,
+                        "link": link
+                    })
+                    seen_vids.add(vid)
                 else:
                     print(f"[스킵] {channel} - {title}")
         except Exception as e:
