@@ -8,6 +8,11 @@ on:
 jobs:
   run-bot:
     runs-on: ubuntu-latest
+    
+    # 깃허브 저장소에 변경된 seen_videos.json을 다시 커밋하기 위한 권한 부여
+    permissions:
+      contents: write
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -22,9 +27,13 @@ jobs:
           python -m pip install --upgrade pip
           pip install feedparser requests
 
-      - name: Wait for exact timing (30 seconds offset)
-        run: sleep 30  # 실행 직후 30초를 대기했다가 파이썬을 돌려 정각/10분 단위의 30초 오프셋을 맞춤
-
       - name: Run script
         run: |
           python main.py
+
+      - name: Save seen videos back to repo
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add seen_videos.json
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Update seen videos [skip ci]" && git push)
