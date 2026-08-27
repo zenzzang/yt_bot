@@ -63,10 +63,10 @@ def get_active_channels_from_sheet():
     return channels
 
 def send_signal(title, link, thumb, channel, published):
-    clean_title = title.replace('"', "'").replace("\n", " ")
-    clean_channel = channel.replace('"', "'").replace("\n", " ")
+    # JSON 문법을 깨뜨리는 특수문자 및 줄바꿈을 안전하게 정제
+    clean_title = title.replace('"', '\\"').replace("'", "\\'").replace("\n", " ").strip()
+    clean_channel = channel.replace('"', '\\"').replace("'", "\\'").replace("\n", " ").strip()
     
-    # 기존 오토메이트 필드 구조를 그대로 유지하여 여러 웹훅 호환성 보장
     payload = {
         "title": clean_title,
         "link": link,
