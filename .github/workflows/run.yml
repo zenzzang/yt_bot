@@ -3,19 +3,22 @@ name: YouTube to Teams Bot
 on:
   schedule:
     - cron: '*/10 * * * *'  # 10분마다 실행
-  workflow_dispatch:
+  workflow_dispatch:      # 수동 실행 버튼 활성화
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
     
-    # 깃허브 저장소에 변경된 seen_videos.json을 다시 커밋하기 위한 권한 부여
+    # 깃허브 저장소에 seen_videos.json 변경 내역을 커밋/푸시하기 위한 필수 권한
     permissions:
       contents: write
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          clean: true
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -26,6 +29,9 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install feedparser requests
+
+      - name: Wait for exact timing (30 seconds offset)
+        run: sleep 30
 
       - name: Run script
         run: |
