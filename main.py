@@ -6,7 +6,7 @@ import csv
 import io
 
 SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1jaIGjoWuAASDof1FUpE7kYK1Jl4Dmg2u8lfFV65bozs/export?format=csv"
-POWER_URL = "https://default91856527a4464990b48e37ca10f2ee.8d.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/09/workflows/b99e85923f3b421cbcf71e6a38cfc5bd/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=-mprHiKkXGUwdrOyclY8EzsxwQk0PDWalHoSu7UUOgA"
+POWER_URL = "https://default91856527a4464990b48e37ca10f2ee.8d.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/02/workflows/1f012f272d9041b3ab0c4a7031ffab2e/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=wFnhf1VLP2r9WLu7nTHZKFHhvPRARZIQ_PD9AB3Uqy8"
 SEEN_FILE = "seen_videos.json"
 
 def load_seen():
@@ -63,25 +63,79 @@ def get_active_channels_from_sheet():
     return channels
 
 def send_signal(title, link, thumb, channel, published):
-    clean_title = str(title).strip()
-    clean_channel = str(channel).strip()
-    
-    # 딕셔너리를 만든 뒤 json.dumps를 거치면 따옴표, 줄바꿈, 특수문자가 JSON 규격에 맞게 안전하게 인코딩됩니다.
+    clean_title = str(title).strip().replace('"', "'")
+    clean_channel = str(channel).strip().replace('"', "'")
+    clean_link = str(link).strip()
+    clean_thumb = str(thumb).strip()
+    clean_published = str(published).strip()
+
+    # 요청하신 적응형 카드 양식을 파이썬 딕셔너리로 통째로 조립
+    adaptive_card = {
+        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+        "type": "AdaptiveCard",
+        "version": "1.2",
+        "body": [
+            {
+                "type": "TextBlock",
+                "text": f"🎬 신규 콘텐츠 알림 [{clean_channel}]",
+                "weight": "Bolder",
+                "size": "Medium",
+                "color": "Accent"
+            },
+            {
+                "type": "TextBlock",
+                "text": clean_title,
+                "weight": "Bolder",
+                "size": "Large",
+                "wrap": True
+            },
+            {
+                "type": "Image",
+                "url": clean_thumb,
+                "size": "Stretch",
+                "altText": "유튜브 썸네일",
+                "selectAction": {
+                    "type": "Action.OpenUrl",
+                    "url": clean_link
+                }
+            },
+            {
+                "type": "FactSet",
+                "facts": [
+                    {
+                        "title": "채널",
+                        "value": clean_channel
+                    },
+                    {
+                        "title": "게시일시",
+                        "value": clean_published
+                    }
+                ]
+            }
+        ],
+        "actions": [
+            {
+                "type": "Action.OpenUrl",
+                "title": "▶️ YouTube에서 영상 바로 재생하기",
+                "url": clean_link
+            },
+            {
+                "type": "Action.OpenUrl",
+                "title": "📊 NC Youtube DashBoard에서 열기",
+                "url": "https://nc-nbs.ai.studio/"
+            }
+        ]
+    }
+
+    # 파워 아우토메이트가 'adaptiveCard' 키값으로 카드를 통째로 받을 수 있게 포장
     payload = {
-        "title": clean_title,
-        "link": str(link).strip(),
-        "thumbnail_url": str(thumb).strip(),
-        "channel_name": clean_channel,
-        "published": str(published).strip()
+        "adaptiveCard": adaptive_card
     }
 
     try:
-        # ensure_ascii=False로 한글 깨짐을 방지하고, 올바른 JSON 문자열로 변환
-        json_data = json.dumps(payload, ensure_ascii=False)
-        
         res = requests.post(
             POWER_URL, 
-            data=json_data.encode('utf-8'), 
+            data=json.dumps(payload, ensure_ascii=False).encode('utf-8'), 
             headers={"Content-Type": "application/json; charset=utf-8"}
         )
         if res.status_code in [200, 202]:
