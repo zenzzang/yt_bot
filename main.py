@@ -2,46 +2,13 @@ import feedparser
 import requests
 import json
 import os
+import csv
+import io
 
-CHANNEL_URLS = [
-    "https://www.youtube.com/feeds/videos.xml?channel_id=UCbiqc9mdIz3XEH6LG5nCeMg",
-    "https://www.youtube.com/feeds/videos.xml?channel_id=UC3a5gHVMzpdhmNj9JefvTzw",
-    "https://www.youtube.com/feeds/videos.xml?channel_id=UC6EcdZPLwHRoJbFWl0LeDaw",
-    "https://www.youtube.com/feeds/videos.xml?channel_id=UCYhAwwDOx16I_yAenTr3Y_A",
-    "https://www.youtube.com/feeds/videos.xml?channel_id=UC8_FRgynMX8wlGsU6Jh3zKg",
-    "https://www.youtube.com/feeds/videos.xml?channel_id=UCs4zYuMKbsEjRultr9J51rA",
-    "https://www.youtube.com/feeds/videos.xml?channel_id=UCTo4YrH1vEFbDqtaaQhIpCA",
-    "https://www.youtube.com/feeds/videos.xml?channel_id=UCStqutAFFfXUFLeo1htewhg",
-    "https://www.youtube.com/feeds/videos.xml?channel_id=UCbsEahPqZ6WrRqQ0wqLAZdg",
-    "https://www.youtube.com/feeds/videos.xml?channel_id=UC8fO3ZAsmI2dMogK5Mojq2g",
-    "https://www.youtube.com/feeds/videos.xml?channel_id=UCQcL_ooESP8rvQa8ogtKkvQ",
-    "https://www.youtube.com/feeds/videos.xml?channel_id=UCJdQeF_krqVXnRsMeLiFVKA",
-    "https://www.youtube.com/feeds/videos.xml?channel_id=UCLSnC5HDvLzV-X_ar_QkZsg",
-    "https://www.youtube.com/feeds/videos.xml?channel_id=UCEsHrY4O-6PpFjSiZNWp-EQ",
-    "https://www.youtube.com/feeds/videos.xml?channel_id=UCqh_gleuOIleCy5Qmbo2j1Q",
-    "https://www.youtube.com/feeds/videos.xml?channel_id=UC4GQLyXDkw2NIS7GAW7Uwbg",
-    "https://www.youtube.com/feeds/videos.xml?channel_id=UCOl67W1YI0sWHiVfymbqmew",
-    "https://www.youtube.com/feeds/videos.xml?channel_id=UCkDvh4ai4BKo98lJd-ZGqDA",
-    "https://www.youtube.com/feeds/videos.xml?channel_id=UCWGs7lFiEdbThvEW4LogTTw",
-    "https://www.youtube.com/feeds/videos.xml?channel_id=UCPAyM_GHKKKd9jnnuPNQZCQ",
-    "https://www.youtube.com/feeds/videos.xml?channel_id=UCGgOgKxwYoi3SAYwMVbglbw",
-    "https://www.youtube.com/feeds/videos.xml?channel_id=UCHiWCN5LEWCPC0G0I8TPT-g",
-    "https://www.youtube.com/feeds/videos.xml?channel_id=UCEpd2-cNQYNY_-fNZpfsyUQ",
-    "https://www.youtube.com/feeds/videos.xml?channel_id=UCJ1pgwGj3mFYgWT5cSbhq0Q",
-    "https://www.youtube.com/feeds/videos.xml?channel_id=UCC1A0EJmrU3gIkk35ZotUxg",
-    "https://www.youtube.com/feeds/videos.xml?channel_id=UC0mZxgRoyTFIsycsqqaAqow",
-    "https://www.youtube.com/feeds/videos.xml?channel_id=UC6alabHLrFrxup0R3Z-BmlQ",
-    "https://www.youtube.com/feeds/videos.xml?channel_id=UCQ4RpXaydDFrDeVdbk537ag",
-    "https://www.youtube.com/feeds/videos.xml?channel_id=UCoOAmAJ83x93BwGAz8IgrfQ",
-    "https://www.youtube.com/feeds/videos.xml?channel_id=UCREI1IrOmyrfY1hWIpmT1Wg",
-    "https://www.youtube.com/feeds/videos.xml?channel_id=UC0aZSIcBfnpWLXAnDQPhjmQ",
-    "https://www.youtube.com/feeds/videos.xml?channel_id=UCs6vXCK1qs2Q35IOmi3OZaw",
-    "https://www.youtube.com/feeds/videos.xml?channel_id=UCGl9Jqn5Wnh4ihPKER2hYkA",
-    "https://www.youtube.com/feeds/videos.xml?channel_id=UCnzF9FKfXUrz_syAy1PRREw",
-    "https://www.youtube.com/feeds/videos.xml?channel_id=UCo-9ovAJ6Ffo2mEI85nw6jg"
-]
+# 구글 스프레드시트의 CSV 내보내기 링크 (공유 권한이 '링크가 있는 모든 사용자 공개'여야 합니다)
+# gid는 시트 번호이며, 기본값은 보통 0입니다.
+SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1jaIGjoWuAASDof1FUpE7kYK1Jl4Dmg2u8lfFV65bozs/export?format=csv"
 
-# 최신 파워 아우토메이트 HTTP URL 반영
 POWER_URL = "https://default91856527a4464990b48e37ca10f2ee.8d.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/09/workflows/b99e85923f3b421cbcf71e6a38cfc5bd/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=-mprHiKkXGUwdrOyclY8EzsxwQk0PDWalHoSu7UUOgA"
 SEEN_FILE = "seen_videos.json"
 
@@ -56,11 +23,43 @@ def save_seen(lst):
     with open(SEEN_FILE, "w") as f:
         json.dump(lst[-200:], f)
 
+def get_active_channels_from_sheet():
+    """구글 시트에서 활성 여부가 TRUE인 채널 RSS URL 목록을 동적으로 가져옵니다."""
+    channels = []
+    try:
+        response = requests.get(SHEET_CSV_URL)
+        response.raise_for_status()
+        
+        # CSV 데이터 파싱
+        f = io.StringIO(response.text)
+        reader = csv.DictReader(f)
+        
+        for row in reader:
+            # 시트의 컬럼명에 맞춰 수정하세요 (예: '활성여부', '채널URL' 또는 '채널ID')
+            active = str(row.get("활성여부", "")).strip().upper()
+            channel_id = str(row.get("채널ID", "")).strip()
+            channel_url = str(row.get("채널URL", "")).strip()
+            
+            if active == "TRUE":
+                if channel_id:
+                    channels.append(f"https://www.youtube.com/feeds/videos.xml?channel_id={channel_id}")
+                elif channel_url:
+                    if "channel_id=" in channel_url:
+                        channels.append(channel_url)
+                    else:
+                        # 일반 채널 주소인 경우 변환 필요시 처리
+                        channels.append(channel_url)
+        
+        print(f"[{len(channels)}개] 활성 채널 로드 완료")
+    except Exception as e:
+        print(f"구글 시트 연동 에러: {e}")
+    
+    return channels
+
 def send_signal(title, link, thumb, channel, published):
     clean_title = title.replace('"', "'").replace("\n", " ")
     clean_channel = channel.replace('"', "'").replace("\n", " ")
     
-    # 파워 아우토메이트가 다루기 쉬운 기본 키-값 형태로 쏩니다.
     payload = {
         "title": clean_title,
         "link": link,
@@ -86,7 +85,12 @@ def run():
     seen = load_seen()
     new_seen = seen.copy()
     
-    for url in CHANNEL_URLS:
+    channel_urls = get_active_channels_from_sheet()
+    if not channel_urls:
+        print("가져온 활성 채널이 없습니다. 시트 권한이나 컬럼명을 확인해주세요.")
+        return
+    
+    for url in channel_urls:
         try:
             feed = feedparser.parse(url)
             if feed.entries:
