@@ -63,22 +63,25 @@ def get_active_channels_from_sheet():
     return channels
 
 def send_signal(title, link, thumb, channel, published):
-    # JSON 문법을 깨뜨리는 특수문자 및 줄바꿈을 안전하게 정제
-    clean_title = title.replace('"', '\\"').replace("'", "\\'").replace("\n", " ").strip()
-    clean_channel = channel.replace('"', '\\"').replace("'", "\\'").replace("\n", " ").strip()
+    clean_title = str(title).strip()
+    clean_channel = str(channel).strip()
     
+    # 딕셔너리를 만든 뒤 json.dumps를 거치면 따옴표, 줄바꿈, 특수문자가 JSON 규격에 맞게 안전하게 인코딩됩니다.
     payload = {
         "title": clean_title,
-        "link": link,
-        "thumbnail_url": thumb,
+        "link": str(link).strip(),
+        "thumbnail_url": str(thumb).strip(),
         "channel_name": clean_channel,
-        "published": published
+        "published": str(published).strip()
     }
 
     try:
+        # ensure_ascii=False로 한글 깨짐을 방지하고, 올바른 JSON 문자열로 변환
+        json_data = json.dumps(payload, ensure_ascii=False)
+        
         res = requests.post(
             POWER_URL, 
-            data=json.dumps(payload, ensure_ascii=False), 
+            data=json_data.encode('utf-8'), 
             headers={"Content-Type": "application/json; charset=utf-8"}
         )
         if res.status_code in [200, 202]:
