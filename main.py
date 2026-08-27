@@ -56,19 +56,27 @@ def save_seen(lst):
         json.dump(lst[-200:], f)
 
 def send_signal(title, link, thumb, channel, published):
+    # 특수문자나 따옴표로 인한 JSON 깨짐 방지를 위해 깔끔하게 정제
+    clean_title = title.replace('"', "'").replace("\n", " ")
+    clean_channel = channel.replace('"', "'").replace("\n", " ")
+    
     payload = {
-        "title": title,
+        "title": clean_title,
         "link": link,
         "thumbnail_url": thumb,
-        "channel_name": channel,
+        "channel_name": clean_channel,
         "published": published
     }
     try:
-        res = requests.post(POWER_URL, data=json.dumps(payload), headers={"Content-Type": "application/json"})
+        res = requests.post(
+            POWER_URL, 
+            data=json.dumps(payload, ensure_ascii=False), 
+            headers={"Content-Type": "application/json; charset=utf-8"}
+        )
         if res.status_code in [200, 202]:
-            print(f"파워 아우토메이트 전송 성공: {title}")
+            print(f"파워 아우토메이트 전송 성공: {clean_title}")
         else:
-            print(f"전송 실패 코드: {res.status_code}")
+            print(f"전송 실패 코드: {res.status_code}, 응답: {res.text}")
     except Exception as ex:
         print(f"통신 에러: {ex}")
 
