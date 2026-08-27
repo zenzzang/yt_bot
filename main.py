@@ -41,7 +41,8 @@ CHANNEL_URLS = [
     "https://www.youtube.com/feeds/videos.xml?channel_id=UCo-9ovAJ6Ffo2mEI85nw6jg"
 ]
 
-POWER_URL = "https://default91856527a4464990b48e37ca10f2ee.8d.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/02/workflows/1f012f272d9041b3ab0c4a7031ffab2e/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=wFnhf1VLP2r9WLu7nTHZKFHhvPRARZIQ_PD9AB3Uqy8"
+# 새로 변경된 파워 아우토메이트 HTTP URL 적용
+POWER_URL = "https://default91856527a4464990b48e37ca10f2ee.8d.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/09/workflows/b99e85923f3b421cbcf71e6a38cfc5bd/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=-mprHiKkXGUwdrOyclY8EzsxwQk0PDWalHoSu7UUOgA"
 SEEN_FILE = "seen_videos.json"
 
 def load_seen():
@@ -59,7 +60,7 @@ def send_signal(title, link, thumb, channel, published):
     clean_title = title.replace('"', "'").replace("\n", " ")
     clean_channel = channel.replace('"', "'").replace("\n", " ")
     
-    # 썸네일과 형식을 갖춘 적응형 카드(Adaptive Card) 구조를 코드 내에서 완전히 조립합니다.
+    # 팀즈 적응형 카드(Adaptive Card) 포맷을 파이썬 내에서 완성도 높게 구성합니다.
     card_payload = {
         "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
         "type": "AdaptiveCard",
@@ -108,7 +109,7 @@ def send_signal(title, link, thumb, channel, published):
         ]
     }
 
-    # 파워 아우토메이트가 기대하는 'adaptiveCard' 키 형태로 감싸서 전송합니다.
+    # 파워 아우토메이트가 트리거로 받을 수 있도록 adaptiveCard 키로 감쌉니다.
     payload = {
         "adaptiveCard": card_payload
     }
