@@ -27,15 +27,42 @@ def get_active_channels_from_sheet():
         response.raise_for_status()
         
         f = io.StringIO(response.text)
-        reader = csv.DictReader(f)
+        reader = csv.reader(f)
         
+        headers = next(reader, None)
+        if not headers:
+            print("구글 시트가 비어있습니다.")
+            return channels
+            
+        # 헤더 이름에서 키워드('채널 ID', '활성 여부')가 포함된 컬럼 인덱스를 유연하게 탐색
+        id_idx = -1
+        active_idx = -1
+        name_idx = -1
+        
+        for idx, h in enumerate(headers):
+            h_clean = h.strip()
+            if "채널 ID" in h_clean:
+                id_idx = idx
+            elif "활성 여부" in h_clean:
+                active_idx = idx
+            elif "채널 이름" in h_clean or "쇼트네임" in h_clean:
+                name_idx = idx
+                
+        print(f"매핑된 컬럼 인덱스 -> 채널ID열: {id_idx}, 활성여부열: {active_idx}, 이름열: {name_idx}")
+        
+        if id_idx == -1 or active_idx == -1:
+            print("❌ 에러: 시트에서 '채널 ID' 또는 '활성 여부' 컬럼을 찾지 못했습니다. 헤더 이름을 확인해주세요.")
+            return channels
+
         row_count = 0
         for row in reader:
+            if not row or len(row) <= max(id_idx, active_idx):
+                continue
             row_count += 1
-            # 캡처 화면의 헤더 이름("활성 여부", "채널 ID", "채널 이름")과 정확히 일치시킴
-            active = str(row.get("활성 여부", "")).strip().upper()
-            channel_id = str(row.get("채널 ID", "")).strip()
-            channel_name = str(row.get("채널 이름", "")).strip()
+            
+            channel_id = row[id_idx].strip()
+            active = row[active_idx].strip().upper()
+            channel_name = row[name_idx].strip() if name_idx != -1 and len(row) > name_idx else "이름없음"
             
             print(f"행[{row_count}] 채널: {channel_name} | ID: {channel_id} | 활성여부: [{active}]")
             
