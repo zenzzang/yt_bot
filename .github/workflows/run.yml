@@ -17,6 +17,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
+          ref: main
           fetch-depth: 0
           clean: true
 
@@ -43,10 +44,3 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add seen_videos.json
           git diff --quiet && git diff --staged --quiet || (git commit -m "Update seen videos [skip ci]" && git push)
-
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          clean: true       # 작업 전 이전 빌드 파일 및 캐시 깨끗이 청소
-          persist-credentials: true
